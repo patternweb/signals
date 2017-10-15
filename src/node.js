@@ -1,7 +1,11 @@
 const chalk = require("chalk");
 
 function Node(id, fn, initialParams = {}, inports = []) {
-  this.isPromise = fn({}) instanceof Promise;
+  try {
+    this.isPromise = fn({}) instanceof Promise;
+  } catch(e) {
+    this.isPromise = false
+  }
   this.id = id;
   this.implementation = fn;
   this.input = initialParams;
@@ -65,6 +69,7 @@ Node.prototype.run = function(cb) {
     } else {
       this._setCalculatedOutput(cb, this.implementation(this.input));
     }
+
     // this._attachFn = this.generator(this.input)
     // this._attachFn.next()
   } else {

@@ -1,10 +1,30 @@
 const { Signal } = require("micro-signals");
 const Node = require("./node");
 const chalk = require("chalk");
+const WebSocket = require("ws");
 
 const signal = new Signal();
 
 const nodes = {};
+
+// const websocket = {
+//   fn: o => {
+//     const socket = new WebSocket(o.url);
+//     socket.on("message", processMessage)
+//     return processMessage
+//   },
+//   inports: ["url"]
+// }
+
+// const buffer = {
+//   fn: o => {
+//     o.socket.on("message", data => {
+//       // update("A", { x: parseFloat(data) })
+//       console.log(data)
+//     });
+//   },
+//   inports: ["socket"]
+// }
 
 const delayedAdd = {
   fn: o =>
@@ -17,20 +37,23 @@ const delayedAdd = {
 const add = {
   fn: o => o.x + o.y,
   inports: ["x", "y"]
-};
+}
+
 const sub = {
   fn: o => o.a - o.b,
   inports: ["a", "b"]
-};
+}
+
 const log = {
   fn: o => {
     console.log(o.a);
     return o.a;
   },
   inports: ["a"]
-};
+}
 
 const addNode = (id, _fn, ob) => {
+  if (nodes[id]) throw Error("Node already exists with that ID")
   nodes[id] = nodes[id] || new Node(id, _fn.fn, ob, _fn.inports);
   Object.keys(ob).forEach(key => {
     nodes[id].listeners.push(
@@ -42,7 +65,7 @@ const addNode = (id, _fn, ob) => {
     run(ob[key][1]);
     // console.log('running', ob[key])
   });
-  run(id);
+  // run(id);
 };
 
 function removeNode(id) {
@@ -66,35 +89,36 @@ function update(id, params) {
 }
 
 addNode("B", sub, { a: "$A", b: 50 });
-addNode("F", add, { x: "$D", y: "$A" });
-addNode("C", delayedAdd, { x: 2, y: 2 });
+addNode("C", add, { x: 2, y: 2 });
 addNode("D", add, { x: "$C", y: "$B" });
 addNode("E", add, { x: "$B", y: 11.43 });
-addNode("A", add, { x: 10, y: 5 });
+addNode("A", add, { x: 4, y: 5 });
 
-// // run all leaf nodes
-// Object.keys(nodes)
-//   // find all nodes where the input value does not begin with $
-//   .filter(nodeName => Object.values(nodes[nodeName].input).every(input => input[0] !== "$"))
-//   .map(node => {
-//     console.log(chalk.grey("RUNNING"), node);
-//     run(node);
-//   });
+// addNode("W", websocket, { url: "wss://tweetstorm.patternx.cc" })
+// addNode("BU", buffer, { socket: "$W" })
 
-setTimeout(() => {
-  // removeNode("D");
-  console.log(
-    Object.keys(nodes).map(key => {
-      const node = nodes[key];
-      return [node.id, node.input, node.output];
-    })
-  );
-}, 1000);
+// run all leaf nodes
+Object.keys(nodes)
+  // find all nodes where the input value does not begin with $
+  .filter(nodeName => Object.values(nodes[nodeName].input).every(input => input[0] !== "$"))
+  .map(node => {
+    console.log(chalk.grey("RUNNING"), node);
+    run(node);
+  });
 
-// const WebSocket = require("ws");
-// const socket = new WebSocket("wss://tweetstorm.patternx.cc");
-// socket.on("message", data => {
-//   update("A", { x: parseFloat(data) })
-// });
 
-// setInterval(() => update("C", { x: Math.random() }), 10)
+// setTimeout(() => {
+//   addNode("F", add, { x: "$D", y: "$A" });
+//   removeNode("D");
+
+//   console.log(
+//     Object.keys(nodes).map(key => {
+//       const node = nodes[key];
+//       return [node.id, node.input, node.output];
+//     })
+//   );
+// }, 1000);
+
+// setInterval(() => update("C", { x: parseInt(Math.random()*4) }), 100)
+// setInterval(() => update("A", { x: parseInt(Math.random()*4) }), 250)
+// setInterval(() => update("B", { b: parseInt(Math.random()*4) }), 320)
