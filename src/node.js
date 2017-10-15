@@ -1,6 +1,7 @@
 const chalk = require("chalk");
 
 function Node(id, fn, initialParams = {}, inports = []) {
+  this.isPromise = fn({}) instanceof Promise;
   this.id = id;
   this.implementation = fn;
   this.input = initialParams;
@@ -17,6 +18,20 @@ function Node(id, fn, initialParams = {}, inports = []) {
 //   }
 // }
 
+Node.prototype._setCalculatedOutput = function(cb, output) {
+  this.output = output;
+
+  console.log(
+    chalk.magenta("CALCULATED"),
+    this.id,
+    "=",
+    this.output,
+    this.input
+  );
+
+  cb(this.output);
+};
+
 Node.prototype.remove = function() {
   while (this.listeners.length > 0) {
     this.listeners.pop().detach();
@@ -24,7 +39,7 @@ Node.prototype.remove = function() {
   console.log(chalk.red("REMOVED"), this.id);
 };
 
-Node.prototype.attach = function(params) {
+Node.prototype.update = function(params) {
   const prevInput = JSON.stringify(this.input);
   // this._attachFn.next(params)
   this.input = { ...this.input, ...params };
@@ -37,25 +52,25 @@ Node.prototype.attach = function(params) {
 Node.prototype.run = function(cb) {
   if (this.output) {
     console.log(chalk.green("CACHED OUTPUT"), this.id);
+    cb(this.output);
   } else if (
     this.inports.every(
       inport => this.input[inport] && this.input[inport][0] !== "$"
     )
   ) {
-    this.output = this.implementation(this.input);
-    console.log(
-      chalk.magenta("CALCULATED"),
-      this.id,
-      "=",
-      this.output,
-      this.input
-    );
+    if (this.isPromise) {
+      this.implementation(this.input).then(result =>
+        this._setCalculatedOutput(cb, result)
+      );
+    } else {
+      this._setCalculatedOutput(cb, this.implementation(this.input));
+    }
     // this._attachFn = this.generator(this.input)
     // this._attachFn.next()
   } else {
     console.log(chalk.yellow("WAITING"), this.id, this.input);
+    // cb(this.output);
   }
-  cb(this.output);
 };
 
 module.exports = Node;

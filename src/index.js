@@ -6,7 +6,14 @@ const signal = new Signal();
 
 const nodes = {};
 
-// const delayedAddFn = cb => o => setTimeout(() => cb(o.a + o.b), 1000);
+const delayedAdd = {
+  fn: o =>
+    new Promise((resolve, reject) => {
+      setTimeout(() => resolve(o.x + o.y), 500);
+    }),
+  inports: ["x", "y"]
+};
+
 const add = {
   fn: o => o.x + o.y,
   inports: ["x", "y"]
@@ -24,15 +31,11 @@ const log = {
 };
 
 const addNode = (id, _fn, ob) => {
-  let fn = _fn.fn;
-  if (typeof fn({}) === "function") {
-    fn = fn(_ => _);
-  }
-  nodes[id] = nodes[id] || new Node(id, fn, ob, _fn.inports);
+  nodes[id] = nodes[id] || new Node(id, _fn.fn, ob, _fn.inports);
   Object.keys(ob).forEach(key => {
     nodes[id].listeners.push(
       signal.filter(payload => "$" + payload[0] === ob[key]).add(payload => {
-        nodes[id].attach({ [key]: payload[1] });
+        nodes[id].update({ [key]: payload[1] });
         run(id);
       })
     );
@@ -48,18 +51,26 @@ function removeNode(id) {
   delete nodes[id];
 }
 
-function run(id) {
-  if (nodes[id]) {
+function run(id, exists = false) {
+  if (exists || nodes[id]) {
     // console.log("RUNNING " + id)
     nodes[id].run(result => signal.dispatch([id, result]));
   }
 }
 
-addNode("C", add, { x: 2, y: 2 });
+function update(id, params) {
+  if (nodes[id]) {
+    nodes[id].update(params);
+    run(id, true);
+  }
+}
+
+addNode("B", sub, { a: "$A", b: 50 });
+addNode("F", add, { x: "$D", y: "$A" });
+addNode("C", delayedAdd, { x: 2, y: 2 });
 addNode("D", add, { x: "$C", y: "$B" });
 addNode("E", add, { x: "$B", y: 11.43 });
 addNode("A", add, { x: 10, y: 5 });
-addNode("B", sub, { a: "$A", b: 50 });
 
 // // run all leaf nodes
 // Object.keys(nodes)
@@ -70,19 +81,20 @@ addNode("B", sub, { a: "$A", b: 50 });
 //     run(node);
 //   });
 
-// setTimeout(() => {
-//   removeNode("B");
-//   console.log(
-//     Object.keys(nodes).map(key => {
-//       const node = nodes[key];
-//       return [node.id, node.input, node.output];
-//     })
-//   );
-// }, 2000);
+setTimeout(() => {
+  // removeNode("D");
+  console.log(
+    Object.keys(nodes).map(key => {
+      const node = nodes[key];
+      return [node.id, node.input, node.output];
+    })
+  );
+}, 1000);
 
 // const WebSocket = require("ws");
 // const socket = new WebSocket("wss://tweetstorm.patternx.cc");
 // socket.on("message", data => {
-//   nodes["A"].attach({ a: parseFloat(data) });
-//   run("A");
+//   update("A", { x: parseFloat(data) })
 // });
+
+// setInterval(() => update("C", { x: Math.random() }), 10)
