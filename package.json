@@ -1,10 +1,11 @@
 {
-  "name": "events",
+  "name": "signals",
   "version": "0.0.1",
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "lint": "prettier --write \"src/**/*.{js,json,css}\""
+    "lint": "prettier --write \"src/**/*.{js,json,css}\"",
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "John Rees <john@bitsushi.com>",
