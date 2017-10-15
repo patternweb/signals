@@ -3,8 +3,8 @@ const chalk = require("chalk");
 function Node(id, fn, initialParams = {}, inports = []) {
   try {
     this.isPromise = fn({}) instanceof Promise;
-  } catch(e) {
-    this.isPromise = false
+  } catch (e) {
+    this.isPromise = false;
   }
   this.id = id;
   this.implementation = fn;
