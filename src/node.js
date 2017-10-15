@@ -74,7 +74,7 @@ Node.prototype.run = function(cb) {
     // this._attachFn.next()
   } else {
     console.log(chalk.yellow("WAITING"), this.id, this.input);
-    // cb(this.output);
+    cb(this.output);
   }
 };
 
